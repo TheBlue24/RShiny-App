@@ -1,0 +1,17 @@
+library(shiny)
+ui <- fluidPage(
+  titlePanel("demo"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("txt","Enter the input")
+    ),
+    mainPanel(
+      paste("You are Entering"),
+      textOutput("txtOutput")
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+  output$txtOutput <- renderText({paste(input$txt)})
+})
+shinyApp(ui=ui,server=server)
