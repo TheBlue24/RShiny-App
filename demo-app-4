@@ -1,0 +1,19 @@
+library(shiny)
+cancer <- read.csv("diabetes.csv")
+ui <- fluidPage(
+  titlePanel("demo"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("selectInp_1","select the Column for Histogram",choices = names(cancer))
+    ),
+    mainPanel(
+      plotOutput("cancer")
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+  output$cancer <- renderPlot({
+    hist(cancer[,input$selectInp_1])
+  })
+})
+shinyApp(ui=ui,server=server)
