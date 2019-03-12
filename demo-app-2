@@ -1,0 +1,20 @@
+library(shiny)
+diabetes <- read.csv("diabetes.csv")
+ui <- fluidPage(
+  titlePanel("demo"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("selectInp_1","select the Person with (1) or without diseases(0)",choices = cancer$Outcome)
+    ),
+    mainPanel(
+      paste("Your Dataframe"),
+      tableOutput("diabetesdata")
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+  output$diabetesdata <- renderTable({
+    personFilter <- subset(diabetes,diabetes$Outcome==input$selectInp_1)
+  })
+})
+shinyApp(ui=ui,server=server)
