@@ -1,0 +1,20 @@
+library(shiny)
+
+ui <- fluidPage(
+  titlePanel("Shiny Button.."),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("no1","Enter the First number",value=200),
+      numericInput("no2","Enter the Second number",value=200),
+      actionButton("btn","Calculate")
+    ),
+    mainPanel(
+      textOutput("total")
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+  calculate <- eventReactive(input$btn,{input$no1+input$no2})
+  output$total <- renderText({calculate()})
+})
+shinyApp(ui=ui,server=server)
