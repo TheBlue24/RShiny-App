@@ -1,0 +1,30 @@
+library(shiny)
+library(arules)
+ui <- fluidPage(
+  titlePanel("Shiny Button.."),
+  sidebarLayout(
+    sidebarPanel(
+      h5("Upload the File less than 5MB"),
+      fileInput("file","choose the file"),
+      radioButtons("sep","Seperator",choices=c(Comma=",",Period=".",Tilde="_",Minus="-")),
+      checkboxInput("header","Header?")
+      
+    ),
+    mainPanel(
+      tableOutput("input_file")
+
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+  data <-renderTable({
+    file <-input$file
+    if(is.null(file)){
+      return()
+    }
+    read.table(file$datapath,sep=input$sep,header=input$header)
+  })
+  output$input_file <- data
+ 
+})
+shinyApp(ui=ui,server=server)
