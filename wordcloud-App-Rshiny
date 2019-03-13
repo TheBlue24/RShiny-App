@@ -1,0 +1,83 @@
+library(shiny)
+library(tm)
+library(wordcloud)
+library(twitteR)
+ui <- fluidPage(
+  titlePanel("WordCloud"),
+  sidebarLayout(
+    sidebarPanel(
+      
+      textInput("id1","Enter the Text For Wordcloud",value = "India"),
+      numericInput("id2","Enter the Min Frequency",min=0,max=100,step=1,value=5),
+      selectInput("id3","Enter the Random Order",choices = c("TRUE","FALSE"),selected = FALSE),
+      selectInput("id5","Enter the Random Color",choices = c("TRUE","FALSE"),selected = FALSE),
+      numericInput("id4","Enter the Rotation.per",min=0,max=1,step=0.1,value=0.3),
+      actionButton("ac","Create WordCloud")
+    ),
+    mainPanel(
+      
+      plotOutput("wcplot")
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+ wc_data <- reactive({
+   input$ac
+   isolate({
+     withProgress(
+       {
+         setProgress(message="Processing Corpus..")
+         word <- input$id1
+         if(!is.null(word)){
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter(toString(word), n=100,lang = "en")
+           
+           
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+         else{
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter("india", n=100,lang = "en")
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+         #clean the data
+         mycorpus <-Corpus(VectorSource(tweets.df$text))
+         #clean the data
+         mycorpus <-tm_map(mycorpus,tolower)
+         mycorpus <-tm_map(mycorpus,removeNumbers)
+         mycorpus <-tm_map(mycorpus,removePunctuation)
+         mycorpus <-tm_map(mycorpus,stripWhitespace)
+         mycorpus <-tm_map(mycorpus,removeWords,stopwords())
+       
+     })#with progress
+   })#isolate
+ })#reactive
+ #wordcloud_rep <-repeatable(wordcloud)
+ #creation of wordcloud
+ output$wcplot <- renderPlot({
+   withProgress(
+     {
+       setProgress(message="Creating WordCloud...")
+       wc_corpus <-wc_data()
+       if(input$id5){
+       wordcloud(wc_corpus,min.freq = input$id2,colors = brewer.pal(8,"Set1"),random.order = input$id3,random.color = TRUE,rot.per=input$id4)
+       }else{
+         wordcloud(wc_corpus,min.freq = input$id2,colors = brewer.pal(8,"Set1"),random.order = input$id3,random.color = FALSE,rot.per=input$id4)  
+       }
+     }
+   )
+ })
+})#server end
+shinyApp(ui=ui,server=server)
