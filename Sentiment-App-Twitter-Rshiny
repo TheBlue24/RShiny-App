@@ -1,0 +1,139 @@
+library(shiny)
+library(tm)
+library(wordcloud)
+library(twitteR)
+library(SnowballC)
+library(tm)
+library(twitteR)
+library(dplyr)
+library(syuzhet)
+library(tidytext)
+library(wordcloud)
+library(ggplot2)
+library(leaflet)
+library(gganimate)
+library(lubridate)
+library(maps)
+library(ggthemes)
+library(tidyr)
+library(viridis)#color palettes
+library(shiny)
+library(shinydashboard)
+library(fmsb)
+library(radarchart)#for wheels emotions
+ui <- fluidPage(
+  titlePanel("Sentiment Analysis in Twitter"),
+  sidebarLayout(
+    sidebarPanel(
+      
+      textInput("id1","Enter The Text For Comparsion",value = "India"),
+      textInput("id2","Enter The Text For Comparsion",value="America"),
+      actionButton("ac","Click Here!")
+    ),
+    mainPanel(
+     h4("Red for") ,textOutput("txt1"),
+     h4("Blue for"),textOutput("txt2"),
+      chartJSRadarOutput('radar', height = '100px',width = "100px")
+     
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+ wc_data <- reactive({
+   input$ac
+   isolate({
+     withProgress(
+       {
+         setProgress(message="Processing wait a min..")
+         word <- input$id1
+         if(!is.null(word)){
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter(toString(word), n=100,lang = "en")
+           
+           
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+         else{
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter("india", n=100,lang = "en")
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+        #Progress for the radar-chart
+         nrc_senti <- get_sentiments("nrc")
+         data <- tibble(1:nrow(tweets.df),text=tweets.df$text)
+         data <- data %>% unnest_tokens(word,text)
+         data <- data %>% anti_join(stop_words)
+         data<-data %>% inner_join(nrc_senti) %>% group_by(sentiment) %>% count() %>% arrange(n) 
+         
+     })#with progress
+   })#isolate
+ })#reactive
+
+ 
+ #for second one
+ wc_data1 <- reactive({
+   input$ac
+   isolate({
+     withProgress(
+       {
+         setProgress(message="Processing wait a min..")
+         word1 <- input$id2
+         if(!is.null(word1)){
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets1 <- searchTwitter(toString(word1), n=100,lang = "en")
+           
+           
+           tweets1.df <- twListToDF(tweets1) 
+           
+         }
+         else{
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets1 <- searchTwitter("America", n=100,lang = "en")
+           tweets1.df <- twListToDF(tweets1) 
+           
+         }
+         #Progress for the radar-chart
+         nrc_senti <- get_sentiments("nrc")
+         data1 <- tibble(1:nrow(tweets1.df),text=tweets1.df$text)
+         data1 <- data1 %>% unnest_tokens(word,text)
+         data1 <- data1 %>% anti_join(stop_words)
+         data1 <-data1 %>% inner_join(nrc_senti) %>% group_by(sentiment) %>% count() %>% arrange(n)
+       })#with progress
+   })#isolate
+ })#reactive
+ 
+ 
+ 
+ 
+
+ 
+ output$txt1 <- renderText({paste(input$id1)})
+ output$txt2 <- renderText({paste(input$id2)})
+ output$radar <- renderChartJSRadar({data <- wc_data()
+ data1  <- wc_data1()
+  chartJSRadar(scores=c(data,data1), polyAlpha=0, showLegend=F)})
+ 
+})#server end
+shinyApp(ui=ui,server=server)
