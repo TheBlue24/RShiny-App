@@ -1,0 +1,87 @@
+library(shiny)
+library(tm)
+library(wordcloud)
+library(twitteR)
+library(SnowballC)
+library(tm)
+library(twitteR)
+library(dplyr)
+library(syuzhet)
+library(tidytext)
+library(wordcloud)
+library(ggplot2)
+library(leaflet)
+library(gganimate)
+library(lubridate)
+library(maps)
+library(ggthemes)
+library(tidyr)
+library(viridis)#color palettes
+library(shiny)
+library(shinydashboard)
+library(fmsb)
+library(radarchart)#for wheels emotions
+ui <- fluidPage(
+  titlePanel("Sentiment Analysis in Twitter"),
+  sidebarLayout(
+    sidebarPanel(
+      
+      textInput("id1","Enter The Text For Emotions",value = "India"),
+      
+      actionButton("ac","Click Here!")
+    ),
+    mainPanel(
+     plotOutput("bar")
+     
+    )
+  )
+)
+server <- shinyServer(function(input,output){
+ wc_data <- reactive({
+   input$ac
+   isolate({
+     withProgress(
+       {
+         setProgress(message="Processing wait a min..")
+         word <- input$id1
+         if(!is.null(word)){
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter(toString(word), n=100,lang = "en")
+           
+           
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+         else{
+           consumer_key <- ""
+           consumer_secret <- ""
+           access_token <- ""
+           access_secret <- ""
+           #connection
+           setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+           tweets <- searchTwitter("india", n=100,lang = "en")
+           tweets.df <- twListToDF(tweets) 
+           
+         }
+        #Progress for the radar-chart
+         nrc_senti <- get_sentiments("nrc")
+         data <- tibble(1:nrow(tweets.df),text=tweets.df$text)
+         data <- data %>% unnest_tokens(word,text)
+         data <- data %>% anti_join(stop_words)
+         data<-data %>% inner_join(nrc_senti) %>% group_by(sentiment) %>% count() %>% arrange(n) 
+         
+     })#with progress
+   })#isolate
+ })#reactive
+output$bar <- renderPlot({
+data <- wc_data()
+  ggplot(data,aes(x=sentiment,y=n,fill=sentiment))+geom_col()+xlab("Sentiments")+ylab("COunt")+ggtitle("Eight Emotions")
+})
+ 
+})#server end
+shinyApp(ui=ui,server=server)
